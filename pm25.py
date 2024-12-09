@@ -4,6 +4,10 @@ import busio
 from digitalio import DigitalInOut, Direction, Pull
 from adafruit_pm25.i2c import PM25_I2C
 import numpy as np
+import datetime
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import collections
 
 # Breakpoints from AirNow.gov's calculator source
 pm25ConcBreakpoints = np.array([0,12.1,35.5,55.5,150.5,250.5,350.5,500.5])
@@ -21,6 +25,13 @@ pm25 = PM25_I2C(i2c, reset_pin)
 print("Found PM2.5 sensor, reading data...")
 
 data = []
+
+raw10MinAvgArray = collections.deque(maxlen=1000)
+aqiValArray = collections.deque(maxlen=1000)
+aqiCatIndexArray = collections.deque(maxlen=1000)
+dateTimeArray = collections.deque(maxlen=1000)
+
+idx = 0
 
 while True:
     time.sleep(1)
@@ -46,8 +57,36 @@ while True:
     aqiVal = np.round(np.interp(tenMinAvg,pm25ConcBreakpoints,aqiBreakpoints))
     aqiCatIdx = 0 if aqiVal < 1 else np.max(np.nonzero(aqiVal > aqiBreakpoints))
 
-    print(f'\n\n\n\n\n')
-    print(f'AQI: {aqiMsgs[aqiCatIdx]} ({aqiVal})')
-    print(f'Ten minute avg PM2.5 concentration: {tenMinAvg}')
-    print(f'Number of data points {len(data)}')
-    print(f'Last reading: {data[-1]}')
+    idx = idx+1
+    if(idx > 599):
+        # Generate things
+        idx = 0
+        dateTimeArray.append(datetime.datetime.now())
+        raw10MinAvgArray.append(tenMinAvg)
+        aqiValArray.append(aqiVal)
+        aqiCatIndexArray.append(aqiCatIdx)
+
+        fig,ax = plt.subplots(1,1)
+        ax.plot(dateTimeArray,raw10MinAvgArray, linewidth=2)
+        ax.set_ylabel('PM2.5')
+        ax.set_title('PM2.5 concentration, 10 minute rolling average')
+        plt.savefig('/var/www/html/airquality/raw.png', format='png', bbox_inches="tight")
+        plt.close()
+
+        fig,ax = plt.subplots(1,1)
+        ax.plot(dateTimeArray,aqiValArray, linewidth=2)
+        ax.set_ylabel('AQI')
+        ax.set_title('Air quality index from PM2.5 concentration')
+        plt.savefig('/var/www/html/airquality/aqival.png', format='png', bbox_inches="tight")
+        plt.close()
+
+        # write a new index.html with files updated to prevent caching issues
+        indexHtml = open('/var/www/html/airquality/index.html', 'w', encoding='utf-8')
+        indexHtml.write('<!DOCTYPE html>\n<html>\n<body>\n')
+        indexHtml.write(f'Current AQI is {aqiMsgs[aqiCatIdx]}<br>\n')
+        indexHtml.write(f'<img src="raw.png?{time.time()}"><br>\n')
+        indexHtml.write(f'<img src="aqival.png?{time.time()}"><br>\n')
+        indexHtml.write(f'</body>\n</html>')
+        indexHtml.close()
+
+        print(f'Wrote HTML at {datetime.datetime.now()}')
