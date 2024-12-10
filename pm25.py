@@ -86,7 +86,6 @@ while True:
         indexHtml.write(f'Current AQI is {aqiMsgs[aqiCatIdx]}<br>\n')
         indexHtml.write(f'<img src="raw.png?{time.time()}"><br>\n')
         indexHtml.write(f'<img src="aqival.png?{time.time()}"><br>\n')
+        indexHtml.write(f'Last updated: {datetime.datetime.now()}<br>\n')
         indexHtml.write(f'</body>\n</html>')
         indexHtml.close()
-
-        print(f'Wrote HTML at {datetime.datetime.now()}')
