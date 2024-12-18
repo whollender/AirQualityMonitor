@@ -22,6 +22,12 @@ i2c = busio.I2C(board.SCL, board.SDA, frequency=100000)
 # Connect to a PM2.5 sensor over I2C
 pm25 = PM25_I2C(i2c, reset_pin)
 
+# Major ticks every day
+# Minor ticks every 12 hours
+dayLocator = mdates.DayLocator()
+hourLocator = mdates.HourLocator(interval=12)
+dayFormatter = mdates.DateFormatter('%m-%d')
+
 print("Found PM2.5 sensor, reading data...")
 
 data = []
@@ -46,7 +52,7 @@ while True:
             data.pop(0)
 
     except RuntimeError:
-        print("Unable to read from sensor, retrying...")
+        print(f'{datetime.datetime.now()}: Unable to read from sensor, retrying...')
         continue
 
 
@@ -68,15 +74,29 @@ while True:
 
         fig,ax = plt.subplots(1,1)
         ax.plot(dateTimeArray,raw10MinAvgArray, linewidth=2)
+
+        # Setup tick dealies
+        ax.xaxis.set_major_locator(dayLocator)
+        ax.xaxis.set_major_formatter(dayFormatter)
+        ax.xaxis.set_minor_locator(hourLocator)
+
         ax.set_ylabel('PM2.5')
         ax.set_title('PM2.5 concentration, 10 minute rolling average')
+        ax.grid(True)
         plt.savefig('/var/www/html/airquality/raw.png', format='png', bbox_inches="tight")
         plt.close()
 
         fig,ax = plt.subplots(1,1)
         ax.plot(dateTimeArray,aqiValArray, linewidth=2)
+
+        # Setup tick dealies
+        ax.xaxis.set_major_locator(dayLocator)
+        ax.xaxis.set_major_formatter(dayFormatter)
+        ax.xaxis.set_minor_locator(hourLocator)
+
         ax.set_ylabel('AQI')
         ax.set_title('Air quality index from PM2.5 concentration')
+        ax.grid(True)
         plt.savefig('/var/www/html/airquality/aqival.png', format='png', bbox_inches="tight")
         plt.close()
 
