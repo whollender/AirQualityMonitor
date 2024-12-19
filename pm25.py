@@ -25,7 +25,7 @@ pm25 = PM25_I2C(i2c, reset_pin)
 # Major ticks every day
 # Minor ticks every 12 hours
 dayLocator = mdates.DayLocator()
-hourLocator = mdates.HourLocator(interval=12)
+hourLocator = mdates.HourLocator(byhour=[0,12])
 dayFormatter = mdates.DateFormatter('%m-%d')
 
 print("Found PM2.5 sensor, reading data...")
